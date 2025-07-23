@@ -2,12 +2,43 @@
 
 This project provides Python scripts for generating and consuming financial instrument analysis messages through Apache Pulsar, designed for integration with Databricks and Iceberg data lakehouse architectures.
 
+# Table of Contents
+
+## 🚀 Section 1: Local Development Setup
+- [Features](#features)
+- [File Structure](#file-structure)
+- [Working with the Project Structure](#working-with-the-project-structure)
+- [Quickstart](#quickstart)
+  - [Step 1: Create Python Virtual Environment](#step-1-create-python-virtual-environment)
+  - [Step 2: Install Dependencies](#step-2-install-dependencies)
+  - [Step 3: Produce and Process Standalone Pulsar Messages](#step-3-produce-and-process-standalone-pulsar-messages)
+  - [Standalone Pulsar Administration](#standalone-pulsar-administration)
+
+## ☁️ Section 2: AWS and Pulsar on EC2 Setup
+- [Step 1: Install and Configure AWS CLI](#step-1-install-and-configure-aws-cli)
+- [Step 2: Set Up EC2 Security](#step-2-set-up-ec2-security)
+- [Step 3: Install Pulsar on EC2](#step-3-install-pulsar-on-ec2)
+- [Step 4: Configure Authentication](#step-4-configure-authentication)
+- [Step 5: Update Configuration for EC2](#step-5-update-configuration-for-ec2)
+- [Step 6: Test Your EC2 Setup](#step-6-test-your-ec2-setup)
+- [Step 7: Process Pulsar Messages in Databricks](#step-7-process-pulsar-messages-in-databricks)
+- [AWS Cost Considerations](#aws-cost-considerations)
+- [Cleanup AWS Resources](#cleanup-aws-resources)
+
+## 🔧 Common Configuration and Usage
+- [Message Schema](#message-schema)
+- [Message Optimization](#message-optimization)
+- [License](#license)
+- [Additional Resources](#additional-resources)
+- [Contributing](#contributing)
+
+
 ## Features
 
 - Setup guides for Apache Pulsar standalone deployment on MacOS and AWS EC2
 - Financial data message generation and publishing to Pulsar topics
 - Consume messages with Databricks Structured Streaming and write to Managed Iceberg tables on Unity Catalog
-- Interactive Spark development using Databricks Connect for seamless local IDE integration
+- Interactive Spark development using Databricks Connect for local IDE integration
 
 ## File Structure
 
@@ -16,12 +47,16 @@ databricks-pulsar-iceberg/
 ├── config.py                          # Simplified configuration (shared)
 ├── requirements.txt                    # Python dependencies
 ├── README.md                          # This file
+├── DATABRICKS_CONNECT_SETUP.md        # Databricks Connect setup guide
 ├── producer/
 │   ├── pulsar_producer.py             # Producer usage example
 │   ├── pulsar_financial_message_producer.py  # Main producer class
 │   └── persistMessageSchema.json      # Sample financial message schema
 └── consumer/
-    └── pulsar_consumer.py             # Message consumer script
+    ├── pulsar_consumer.py             # Message consumer script
+    ├── iceberg-foreachbatch.ipynb     # Databricks notebook for Spark Structured Streaming foreachBatch processing with Iceberg
+    ├── iceberg-streaming.ipynb        # Databricks notebook for Spark Structured Streaming  with Iceberg
+    ├── schemas.py                     # Schema definitions for data processing
 ```
 
 ## Working with the Project Structure
@@ -29,36 +64,26 @@ databricks-pulsar-iceberg/
 The project is organized into separate producer and consumer components:
 
 - **`producer/`**: Contains all message production logic and financial data generation
-- **`consumer/`**: Contains message consumption and display logic  
+- **`consumer/`**: Contains message consumption and display logic, including Databricks notebooks for Iceberg integration
 - **`config.py`**: Shared configuration file in the base directory with simplified `DEV_CONFIG`
+- **`DATABRICKS_CONNECT_SETUP.md`**: Setup guide for configuring Databricks Connect for local development
 
-To run scripts, navigate to their respective directories:
-```bash
-# For producer operations
-cd producer
-python pulsar_producer.py
+### Databricks Integration Components
 
-# For consumer operations (in another terminal)
-cd consumer
-python pulsar_consumer.py
-```
+The consumer directory includes specialized notebooks for Databricks and Iceberg integration:
 
-Both scripts can import the shared configuration:
-```python
-import sys
-sys.path.append('..')
-from config import DEV_CONFIG
-```
+- **`iceberg-foreachbatch.ipynb`**: Demonstrates foreachBatch processing patterns in Spark Structured Streaming from Pulsar messages and Iceberg tables
+- **`iceberg-streaming.ipynb`**: Shows real-time streaming processing from Pulsar to Iceberg using Structured Streaming
+- **`schemas.py`**: Contains schema definitions
+- **`pulsar-streaming-queries.jpg`**: Visual reference for streaming query patterns
 
-## Prerequisites
-
-Python 3.8 or higher
+## Quickstart
 
 ### Step 1: Create Python Virtual Environment
 
 ```bash
 # Create virtual environment
-python3 -m venv .venv
+python3.12 -m venv .venv
 
 # Activate virtual environment
 # On macOS/Linux:
@@ -128,7 +153,7 @@ producer = PulsarFinancialMessageProducer(
 )
 ```
 
-## Step 3: Test Your Setup
+## Step 3: Produce and process standalone Pulsar messages
 
 ```bash
 # In terminal 1: Start Pulsar (if not already running)
@@ -141,13 +166,11 @@ source .venv/bin/activate
 cd producer
 python pulsar_producer.py
 
-# In terminal 3: Run the consumer (optional)
+# In terminal 3: Run the consumer (optional) in local environment
 source .venv/bin/activate  
 cd consumer
 python pulsar_consumer.py
 ```
-
-### Expected Output:
 
 **Producer Output:**
 ```
@@ -161,7 +184,7 @@ python pulsar_consumer.py
 📊 Topic: financial-messages
 ```
 
-**Consumer Output:**
+**Consumer Output for consumer.py**
 ```
 🔍 Pulsar Financial Message Consumer
 ============================================
@@ -423,7 +446,7 @@ aws ec2 describe-instances \
   --output table
 ```
 
-## Step 6: Install Pulsar on EC2
+## Step 3: Install Pulsar on EC2
 
 ```bash
 # SSH into your instance (replace YOUR_EC2_PUBLIC_IP with your actual IP)
@@ -448,7 +471,7 @@ cd apache-pulsar-3.1.0
 bin/pulsar standalone
 ```
 
-## Step 7: Configure Authentication (Optional)
+## Step 4: Configure Authentication (Optional)
 
 ### Option A: No Authentication (Default for Standalone)
 
@@ -481,34 +504,22 @@ auth_config = {
 }
 ```
 
-## Step 8: Update Configuration for EC2
+## Step 5: Update Configuration for EC2
 
 1. **The configuration is already simplified in the base directory** (`config.py`)
    
-2. **For EC2, you can modify the DEV_CONFIG or create a new config:**
-   ```python
-   # Update these values in config.py
-   
-   # Your EC2 Pulsar service URL (replace with your EC2 public IP)
-   PULSAR_SERVICE_URL = "pulsar://YOUR_EC2_PUBLIC_IP:6650"
-   
-   # Your topic name
-   TOPIC_NAME = "persistent://public/default/financial-analysis"
-   
-   # Authentication configuration (for standalone Pulsar, often no auth needed)
-   AUTH_CONFIG = {}
-   ```
+2. **You can modify the PROD_CONFIG to use EC2 Pulsar service endpoint**
 
-3. **Update pulsar_producer.py:**
-   ```python
-   # Replace YOUR_EC2_PUBLIC_IP with your actual EC2 public IP
-   PULSAR_URL = "pulsar://YOUR_EC2_PUBLIC_IP:6650"
-   TOPIC = "financial-messages"
-   
-   producer = PulsarFinancialMessageProducer(PULSAR_URL, TOPIC)
-   ```
+  ```
+   PROD_CONFIG = {
+    'service_url': 'pulsar://YOUR_EC2_PUBLIC_IP:6650',
+    'topic': 'financial-messages',
+    'auth': {},  # Or JWT/OAuth2 if configured
+    'log_level': 'WARNING'
+  }
+  ```
 
-## Step 9: Test Your EC2 Setup
+## Step 6: Test Your EC2 Setup
 
 ```bash
 # Run the producer
@@ -526,16 +537,36 @@ Generating and sending financial message...
 Message sent with ID: (1,0,-1,0)
 ```
 
+## Step 7: Process Pulsar messages in Databricks
+
+To process messages in Databricks:
+
+1. Process messages using one of these options:
+   - Clone the repository to your Databricks workspace and run the notebooks interactively:
+     - `iceberg-foreachbatch.ipynb`
+     - `iceberg-streaming.ipynb` 
+   - Or set up local development by following `DATABRICKS_CONNECT_SETUP.md`
+
+2. Configure the Pulsar connection:
+   - Open either notebook
+   - Update the `service_url` parameter with your Pulsar on EC2 endpoint
+
+3. Run the notebook:
+   - Execute all cells in sequence
+   - Monitor the streaming progress in the Spark UI
+   - Check the Iceberg table for incoming data
+
 ## AWS Cost Considerations
 
 ### Estimated Monthly Costs
 
 **EC2 Standalone Pulsar:**
-- 1 x t3.small instance: ~$15/month (development)
-- 1 x t3.large instance: ~$60/month (production)
+- 1 x t3.small instance (2 vCPU, 2GB RAM): ~$15/month
+- 1 x t3.medium instance (2 vCPU, 4GB RAM): ~$30/month  
+- 1 x t3.large instance (2 vCPU, 8GB RAM): ~$60/month
 - EBS storage (20GB): ~$2/month
 - Data transfer: ~$1-5/month
-- **Total: ~$18-67/month**
+- **Total range: ~$18-67/month**
 
 ### Cost Optimization Tips
 

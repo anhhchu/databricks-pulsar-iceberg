@@ -137,28 +137,16 @@ Choose one of the following authentication methods:
 
 #### Option B: OAuth Authentication
 
-Configure OAuth (recommended for production):
+Configure OAuth:
 
 ```bash
-databricks auth login --host https://your-workspace.cloud.databricks.com
+databricks auth login --host https://your-workspace.cloud.databricks.com --profile prod
 ```
 
 This will:
 - Open your browser for authentication
 - Create a profile in `~/.databrickscfg`
 - Store OAuth credentials securely
-
-### Multiple Profiles (Optional)
-
-You can create multiple profiles for different environments:
-
-```bash
-# Development profile
-databricks configure --token --profile dev
-
-# Production profile  
-databricks auth login --host https://your-prod-workspace.com --profile prod
-```
 
 ## 3. Verify Configuration
 
@@ -241,55 +229,6 @@ spark = DatabricksSession.builder \
 print(f"✅ Connected using 'dev' profile! Spark version: {spark.version}")
 ```
 
-### Example: Adapting Your Pulsar-Iceberg Notebook
-
-Here's how to adapt your existing notebook to use Databricks Connect:
-
-```python
-# Cell 1: Setup Databricks Connect
-from databricks.connect import DatabricksSession
-from pyspark.sql.functions import col, from_json, explode
-from consumer.schemas import schema, instrument_ref_schema, instrument_error_schema, instrument_risk_schema
-
-# Connect to your cluster
-spark = DatabricksSession.builder \
-    .remote(cluster_id="1234-567890-abc123") \
-    .getOrCreate()
-
-print(f"✅ Connected to Databricks! Spark version: {spark.version}")
-```
-
-```python
-# Cell 2: Your existing streaming code
-fin_df = (
-    spark.readStream
-    .format("pulsar")
-    .option("service.url", "pulsar://6.tcp.us-cal-1.ngrok.io:13185")
-    .option("topics", "financial-messages")
-    .option("startingOffsets", "latest")
-    .load()
-    .select(from_json(col("value").cast("string"), schema).alias("value"))
-    .select("value.*")
-)
-
-# Create bronze table
-spark.sql(f"""
-CREATE TABLE IF NOT EXISTS users.anhhoang_chu.bronze_fin_instrument ( {schema} )
-USING ICEBERG
-""")
-
-# Write to bronze table
-(
-    fin_df.writeStream
-    .format("iceberg")
-    .outputMode("append")
-    .option("schemaLocation", "/Volumes/users/anhhoang_chu/iceberg/bronze1/_schema")
-    .option("checkpointLocation", "/Volumes/users/anhhoang_chu/iceberg/bronze1/_checkpoint")
-    .trigger(availableNow=True)
-    .toTable("users.anhhoang_chu.bronze_fin_instrument")
-)
-```
-
 ## 6. Troubleshooting
 
 ### Common Issues:
@@ -338,27 +277,7 @@ databricks clusters get --cluster-id YOUR_CLUSTER_ID
 
 # Check version compatibility
 python --version
-python -c "import databricks.connect; print(f'Databricks Connect: {databricks.connect.__version__}')"
 pip show databricks-connect
-```
-
-### Version Debugging:
-
-```python
-# Add this to check version compatibility in a notebook
-import sys
-import databricks.connect
-
-print(f"Python version: {sys.version}")
-print(f"Databricks Connect version: {databricks.connect.__version__}")
-
-# Check if cluster runtime matches (run this after connecting)
-try:
-    spark = DatabricksSession.builder.remote(cluster_id="YOUR_CLUSTER_ID").getOrCreate()
-    print(f"Spark version: {spark.version}")
-    print("✅ Connection successful - versions are compatible")
-except Exception as e:
-    print(f"❌ Version mismatch or connection issue: {e}")
 ```
 
 ### Test Connection in Notebook:
@@ -411,22 +330,5 @@ except Exception as e:
    - Keep notebooks in version control (convert .ipynb to .py when needed)
    - Use checkpoint locations for streaming jobs
    - Monitor cluster usage to control costs
-
-## 8. Next Steps
-
-Once connected, you can:
-- ✅ Run your Pulsar-Iceberg streaming pipeline locally in Jupyter
-- ✅ Debug interactively with full Python debugging capabilities
-- ✅ Leverage Databricks compute while using your local development environment
-- ✅ Version control your notebooks and streaming jobs
-- ✅ Use your favorite IDE extensions and tools
-
-### Converting Your Existing Notebook
-
-Your original `iceberg-streaming.ipynb` can now be run locally! Just:
-
-1. Add the Databricks Connect setup cell at the beginning
-2. Replace your cluster ID in the connection code
-3. Run cells interactively while leveraging Databricks compute
 
 For more information, see the [official Databricks Connect documentation](https://docs.databricks.com/dev-tools/databricks-connect.html). 

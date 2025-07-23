@@ -4,13 +4,9 @@ This project provides Python scripts for generating and consuming financial inst
 
 ## Features
 
-- 🏦 **Financial Instrument Modeling**: Complete data structures for bonds, risk metrics, and cash flows
-- 🔐 **Authentication Support**: JWT tokens, OAuth2, and AWS Cognito  
-- 📊 **Risk Analytics**: Comprehensive risk metrics including PD, LGD, EAD, and CECL calculations
-- 🚀 **High Performance**: Batching, compression, and efficient message delivery
-- 📝 **Comprehensive Logging**: Detailed logging for monitoring and debugging
-- 🔧 **Configurable**: Simplified configuration for local development
-- 🗂️ **Organized Structure**: Separate producer and consumer components
+- Setup guides for Apache Pulsar standalone deployment on MacOS and AWS EC2
+- Financial data message generation and publishing to Pulsar topics
+- Message consumption using Python clients and Databricks Structured Streaming
 
 ## File Structure
 

@@ -7,6 +7,7 @@ This project provides Python scripts for generating and consuming financial inst
 - Setup guides for Apache Pulsar standalone deployment on MacOS and AWS EC2
 - Financial data message generation and publishing to Pulsar topics
 - Message consumption using Python clients and Databricks Structured Streaming
+- Interactive Spark development using Databricks Connect for seamless local IDE integration
 
 ## File Structure
 
